@@ -2,6 +2,10 @@ package main
 
 /*
 TODO:
+
+	1) enable setup & build stage different tags
+
+
 	default paths, for example ~/vpp/
 	container build - placed on dockerhub already ?
 	mounts - should be optional and configurable
@@ -41,6 +45,7 @@ type tool struct {
 	context        string
 	plugin         string
 	current_commit bool
+	second_commit  bool
 	commit         string
 	debug          bool
 }
@@ -97,11 +102,26 @@ func get_commit_id() string {
 	return output
 }
 
+func get_second_commit_id() string {
+	status, output := run_command("git", "show", "HEAD^", "--pretty=format:\"%H\"", "--no-patch")
+	if !status {
+		fmt.Fprintf(os.Stderr, "%s: not in a git repository\n",
+			os.Args[0])
+	}
+	if len(output) > 0 && output[0] == '"' {
+		output = output[1:]
+	}
+	if len(output) > 0 && output[len(output)-1] == '"' {
+		output = output[:len(output)-1]
+	}
+	return output
+}
+
 func del_container(name string) bool {
 	return run(false, "docker", "rm", "-f", name)
 }
 
-func (t tool) create_image() bool {
+func (t tool) install_image() bool {
 
 	var success = false
 
@@ -126,8 +146,12 @@ func (t tool) setup_image(name string, src image, dst image) bool {
 	del_container(name)
 	defer del_container(name)
 
-	if len(t.commit) <= 0 && t.current_commit {
-		t.commit = get_commit_id()
+	if len(t.commit) <= 0 {
+		if t.second_commit {
+			t.commit = get_second_commit_id()
+		} else if t.current_commit {
+			t.commit = get_commit_id()
+		}
 	}
 
 	if len(t.commit) > 0 {
@@ -170,12 +194,6 @@ func (t tool) build_image(name string, src image, dst image) bool {
 	return success
 }
 
-func (t tool) build_vpp(name string) bool {
-	success := t.setup_image(name, t.setup, t.build) &&
-		t.build_image(name, t.build, t.build)
-	return success
-}
-
 func (t tool) deploy_vpp(name string) bool {
 
 	del_container(name)
@@ -207,8 +225,11 @@ func (t tool) try_configure_vpp(name string) {
 }
 
 func print_usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s: <setup|build|<deploy|configure <name>>\n",
+	fmt.Fprintf(os.Stderr, "Usage of %s: <install|setup|build|<deploy|configure <name>>\n",
 		os.Args[0])
+	fmt.Fprintf(os.Stderr, "\t1) install (required once)"+
+		"\n\t2) setup (requirements image)"+
+		"\n\t3) build (debug vpp image)\n")
 	flag.PrintDefaults()
 	os.Exit(1)
 }
@@ -228,12 +249,14 @@ func main() {
 	flag.StringVar(&t.config_file, "vpp-config", "", "vpp config file")
 
 	flag.BoolVar(&t.current_commit, "commit-get", false, "use current dir commit id")
+	flag.BoolVar(&t.second_commit, "commit-get-sec", false, "use current dir second commit id")
+
 	flag.StringVar(&t.commit, "commit-id", "", "commit id")
 
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
 
 	flag.StringVar(&t.build.vpp_image, "docker-image", vpp_image, "build docker image")
-	flag.StringVar(&t.build.vpp_tag, "docker-tag", vpp_build_tag, "build docker tag")
+	flag.StringVar(&t.build.vpp_tag, "build-tag", vpp_build_tag, "build docker tag")
 
 	// TODO: add support for multiple plugins/mounts
 	flag.StringVar(&t.plugin, "plugin", "", "plugin folder")
@@ -247,10 +270,12 @@ func main() {
 	var success = true
 
 	switch flag.Arg(0) {
+	case "install":
+		success = t.install_image()
 	case "setup":
-		success = t.create_image()
+		success = t.setup_image(tmp_container, t.setup, t.build)
 	case "build":
-		success = t.build_vpp(tmp_container)
+		success = t.build_image(tmp_container, t.build, t.build)
 	case "deploy":
 		if flag.NArg() < 2 {
 			print_usage()
