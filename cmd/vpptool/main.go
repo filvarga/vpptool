@@ -131,7 +131,7 @@ func (t tool) install_image() bool {
 		goto done
 	}
 
-	success = run(t.debug, "docker", "build",
+	success = run(t.debug, "docker", "build", "--pull",
 		"--build-arg", fmt.Sprintf("IDU=%s", user.Uid),
 		"--build-arg", fmt.Sprintf("IDG=%s", user.Gid),
 		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
