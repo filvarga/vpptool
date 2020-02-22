@@ -10,12 +10,12 @@ RUN set -eux; \
     linux-tools-common \
     ca-certificates \
     build-essential \
+    openssh-client \
     iputils-ping \
     net-tools \
     iproute2 \
     valgrind \
-    tcpdump \
-    netcat; \
+    tcpdump netcat; \
     rm -rf /var/lib/apt/lists/*; \
     mv /usr/sbin/tcpdump /usr/bin/tcpdump
 
@@ -45,19 +45,19 @@ RUN set -eux; \
     mkdir -p /run/vpp; \
     mkdir -p /var/log/vpp
 
-COPY ./files/startup.sh /usr/bin/startup.sh
-COPY ./files/setup.sh /usr/bin/setup.sh
-COPY ./files/kill.sh /usr/bin/kill.sh
+COPY ./scripts/startup.sh /scripts/startup
+COPY ./scripts/setup.sh   /scripts/setup
+COPY ./scripts/kill.sh    /scripts/kill
 
-COPY ./files/startup.conf /etc/startup.conf
-COPY ./files/vpp.conf /etc/vpp.conf
+COPY ./conf/startup.conf /etc/startup.conf
+COPY ./conf/vpp.conf     /etc/vpp.conf
 
 RUN set -eux; \
-  git config --global user.email "you@example.com"; \
-  git config --global user.name "Your Name"
+  git config --global user.email "john.doe@example.com"; \
+  git config --global user.name "John Doe"
 
 ENV STARTUP_CONF=/etc/startup.conf
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-CMD ["setup.sh"]
+CMD ["/scripts/setup"]
