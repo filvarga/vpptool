@@ -1,0 +1,24 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+then
+  name='vpp-run'
+else
+  name=$1
+fi
+
+pid=$(docker exec -it $name pidof vpp | tr -d '\r')
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+
+if [ $# -ge 2 ]; then
+  for point in "${@:2}"; do
+    tmp=$str
+    str="${tmp}br ${point}\n"
+  done
+  docker exec -it $name bash -c "printf $str > /tmp/bpoints"
+  docker exec -it $name gdb -p $pid -cd=/opt/vpp -x /tmp/bpoints
+else
+  docker exec -it $name gdb -p $pid -cd=/opt/vpp
+fi
