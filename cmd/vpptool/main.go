@@ -1,15 +1,19 @@
-package main
-
 /*
-TODO:
-
-	1) enable setup & build stage different tags
-
-
-	default paths, for example ~/vpp/
-	container build - placed on dockerhub already ?
-	mounts - should be optional and configurable
-*/
+ * Copyright 2020 Filip Varga
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package main
 
 import (
 	"flag"
@@ -147,8 +151,6 @@ func (t tool) install_image(online bool) bool {
 		goto done
 	}
 
-	// make pull optional
-	// --pull
 	if online {
 		success = run(t.debug, "docker", "build", "--pull",
 			"--build-arg", fmt.Sprintf("IDU=%s", user.Uid),
@@ -228,26 +230,12 @@ func (t tool) deploy_vpp(name string) bool {
 	}
 }
 
-func (t tool) copy_to_etc(name string, src string, dst string) bool {
-	return run(t.debug, "docker", "cp", src,
-		fmt.Sprintf("%s:/etc/%s", name, dst))
-}
-
-func (t tool) try_configure_vpp(name string) {
-	if len(t.startup_file) > 0 {
-		t.copy_to_etc(name, t.startup_file, "startup.conf")
-	}
-	if len(t.config_file) > 0 {
-		t.copy_to_etc(name, t.config_file, "vpp.cnf")
-	}
-}
-
 func print_usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s: <install|setup|build|<deploy|configure <name>>\n",
+	fmt.Fprintf(os.Stderr, "Usage of %s: <install|setup|build|<deploy <name>>\n",
 		os.Args[0])
-	fmt.Fprintf(os.Stderr, "\t1) install (required once)"+
-		"\n\t2) setup (requirements image)"+
-		"\n\t3) build (debug vpp image)\n")
+	fmt.Fprintf(os.Stderr, "\t1) install (required only once)"+
+		"\n\t2) setup (configures vpp dependencies based on commit id)"+
+		"\n\t3) build (required after chaning commit id)\n")
 	flag.PrintDefaults()
 	os.Exit(1)
 }
@@ -264,22 +252,23 @@ func main() {
 	flag.BoolVar(&t.debug, "debug", false, "print debug output")
 	online := flag.Bool("online", false, "force update base docker image")
 
-	flag.StringVar(&t.startup_file, "vpp-startup", "", "vpp startup file")
-	flag.StringVar(&t.config_file, "vpp-config", "", "vpp config file")
-
-	flag.BoolVar(&t.current_commit, "commit-get", false, "use current dir commit id")
-	flag.BoolVar(&t.second_commit, "commit-get-sec", false, "use current dir second commit id")
-
+	// required for setup phase
 	flag.StringVar(&t.commit, "commit-id", "", "commit id")
+	flag.BoolVar(&t.current_commit, "commit-get", false,
+		"use current dir commit id")
+	flag.BoolVar(&t.second_commit, "commit-get-sec", false,
+		"use current dir second commit id")
 
+	// required for install phase (for building base docker image)
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
 
 	flag.StringVar(&t.build.vpp_image, "docker-image", vpp_image, "build docker image")
 	flag.StringVar(&t.build.vpp_tag, "build-tag", vpp_build_tag, "build docker tag")
 
-	// TODO: add support for multiple plugins/mounts
+	// mounts over container src ./vpp/src
 	flag.StringVar(&t.src, "src", "", "src folder")
-	flag.StringVar(&t.plugin, "plugin", "", "plugin folder")
+	// mounts over container src ./vpp/src/plugins/<plugin>
+	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
 
 	flag.Parse()
 
@@ -304,12 +293,6 @@ func main() {
 			logInfo("using commit-id: %s", t.commit)
 		}
 		success = t.setup_image(tmp_container, t.setup, t.build)
-		// TODO:
-		// hack to try build second time
-		// while ! success or count of times
-		if !success {
-			t.setup_image(tmp_container, t.setup, t.build)
-		}
 	case "build":
 		success = t.build_image(tmp_container, t.build, t.build)
 	case "deploy":
@@ -318,13 +301,6 @@ func main() {
 		}
 		name := flag.Arg(1)
 		success = t.deploy_vpp(name)
-		t.try_configure_vpp(name)
-	case "configure":
-		if flag.NArg() < 2 {
-			print_usage()
-		}
-		name := flag.Arg(1)
-		t.try_configure_vpp(name)
 	default:
 		print_usage()
 	}
