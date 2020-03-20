@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	context       = "git@git.server:/git-server/repos/vpptool.git#master:docker"
+	//context       = "git@git.server:/git-server/repos/vpptool.git#master:docker"
+	context       = "git@github.com:filvarga/vpptool.git#master:docker"
 	tmp_container = "vpptool-container"
 	vpp_image     = "vpptool-images"
 	vpp_setup_tag = "setup"
