@@ -4,17 +4,14 @@ FROM ubuntu:18.04
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-    linux-tools-`uname -r` \
     git gdb sudo vim less \
     inetutils-traceroute \
-    linux-tools-common \
     ca-certificates \
     build-essential \
     openssh-client \
     iputils-ping \
     net-tools \
     iproute2 \
-    valgrind \
     tcpdump netcat; \
     rm -rf /var/lib/apt/lists/*; \
     mv /usr/sbin/tcpdump /usr/bin/tcpdump

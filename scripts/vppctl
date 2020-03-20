@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+  then
+    name='vpp-run'
+  else
+    name=$1
+fi
+
+vppctl=$(docker exec -it $name which vppctl)
+if [ $? -ne 0 ]; then
+  exit 1
+fi
+vppctl="$(echo -e "${vppctl}" | tr -d '[:space:]')"
+docker exec -it $name $vppctl ${@:2}

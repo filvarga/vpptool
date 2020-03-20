@@ -30,6 +30,7 @@ const (
 	//context       = "git@git.server:/git-server/repos/vpptool.git#master:docker"
 	context       = "git@github.com:filvarga/vpptool.git#master:docker"
 	tmp_container = "vpptool-container"
+	vpp_name      = "vpp-run"
 	vpp_image     = "vpptool-images"
 	vpp_setup_tag = "setup"
 	vpp_build_tag = "build"
@@ -298,10 +299,10 @@ func main() {
 		success = t.build_image(tmp_container, t.build, t.build)
 	case "deploy":
 		if flag.NArg() < 2 {
-			print_usage()
+			success = t.deploy_vpp(vpp_name)
+		} else {
+			success = t.deploy_vpp(flag.Arg(1))
 		}
-		name := flag.Arg(1)
-		success = t.deploy_vpp(name)
 	default:
 		print_usage()
 	}
