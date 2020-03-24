@@ -42,18 +42,17 @@ type image struct {
 }
 
 type tool struct {
-	setup          image
-	build          image
-	run            image
-	startup_file   string
-	config_file    string
-	context        string
-	src            string
-	plugin         string
-	current_commit bool
-	second_commit  bool
-	commit         string
-	debug          bool
+	setup        image
+	build        image
+	run          image
+	startup_file string
+	config_file  string
+	context      string
+	src          string
+	plugin       string
+	get_commit   bool
+	commit       string
+	debug        bool
 }
 
 func log(w io.Writer, format string, args ...interface{}) (i int, err error) {
@@ -113,20 +112,13 @@ func get_current_commit_id() (bool, string) {
 	return run_command("git", "show", "--pretty=format:\"%H\"", "--no-patch")
 }
 
-func get_previous_commit_id() (bool, string) {
-	return run_command("git", "show", "HEAD^", "--pretty=format:\"%H\"", "--no-patch")
-}
-
-func get_commit_id(current bool) string {
+func get_commit_id() string {
 	var (
 		status bool
 		output string
 	)
-	if current {
-		status, output = get_current_commit_id()
-	} else {
-		status, output = get_previous_commit_id()
-	}
+	status, output = get_current_commit_id()
+
 	if !status {
 		fmt.Fprintf(os.Stderr, "%s: not in a git repository\n",
 			os.Args[0])
@@ -233,8 +225,9 @@ func (t tool) deploy_vpp(name string) bool {
 }
 
 func print_usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s: <install|setup|build|<deploy <name>>\n",
+	fmt.Fprintf(os.Stderr, "Usage of %s: <install|setup|build|<deploy [vpp-run]>\n",
 		os.Args[0])
+	// TODO: add howto run informations, and use cases
 	fmt.Fprintf(os.Stderr, "\t1) install (required only once)"+
 		"\n\t2) setup (configures vpp dependencies based on commit id)"+
 		"\n\t3) build (required after chaning commit id)\n")
@@ -256,10 +249,8 @@ func main() {
 
 	// required for setup phase
 	flag.StringVar(&t.commit, "commit-id", "", "commit id")
-	flag.BoolVar(&t.current_commit, "commit-get", false,
+	flag.BoolVar(&t.get_commit, "commit-get", false,
 		"use current dir commit id")
-	flag.BoolVar(&t.second_commit, "commit-get-sec", false,
-		"use current dir second commit id")
 
 	// required for install phase (for building base docker image)
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
@@ -284,14 +275,8 @@ func main() {
 	case "install":
 		success = t.install_image(*online)
 	case "setup":
-		if len(t.commit) <= 0 {
-			if t.second_commit {
-				t.commit = get_commit_id(false)
-			} else if t.current_commit {
-				t.commit = get_commit_id(true)
-			}
-		}
-		if len(t.commit) > 0 {
+		if len(t.commit) <= 0 && t.get_commit {
+			t.commit = get_commit_id()
 			logInfo("using commit-id: %s", t.commit)
 		}
 		success = t.setup_image(tmp_container, t.setup, t.build)
