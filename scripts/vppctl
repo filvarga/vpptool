@@ -7,9 +7,16 @@ if [ $# -eq 0 ]
     name=$1
 fi
 
+state=$(docker inspect -f '{{.State.Running}}' $name)
+state="$(echo -e "${state}" | tr -d '[:space:]')"
+if [[ "$state" != "true" ]]; then
+  docker start $name &> /dev/null
+fi
+
 vppctl=$(docker exec -it $name which vppctl)
 if [ $? -ne 0 ]; then
   exit 1
 fi
 vppctl="$(echo -e "${vppctl}" | tr -d '[:space:]')"
+# TODO: wait a bit until vpp starts / exit with error
 docker exec -it $name $vppctl ${@:2}
