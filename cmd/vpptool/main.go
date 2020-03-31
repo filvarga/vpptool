@@ -28,7 +28,7 @@ import (
 
 const (
 	//context       = "git@git.server:/git-server/repos/vpptool.git#master:docker"
-	context       = "git@github.com:filvarga/vpptool.git#master:docker"
+	context       = "https://github.com/filvarga/vpptool.git#master:docker"
 	tmp_container = "vpptool-container"
 	vpp_name      = "vpp-run"
 	vpp_image     = "vpptool-images"
@@ -256,7 +256,7 @@ func main() {
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
 
 	flag.StringVar(&t.build.vpp_image, "docker-image", vpp_image, "build docker image")
-	flag.StringVar(&t.build.vpp_tag, "build-tag", vpp_build_tag, "build docker tag")
+	flag.StringVar(&t.build.vpp_tag, "docker-tag", vpp_build_tag, "build docker tag")
 
 	// mounts over container src ./vpp/src
 	flag.StringVar(&t.src, "src", "", "src folder")
