@@ -27,7 +27,6 @@ import (
 )
 
 const (
-	//context       = "git@git.server:/git-server/repos/vpptool.git#master:docker"
 	context       = "https://github.com/filvarga/vpptool.git#master:docker"
 	tmp_container = "vpptool-container"
 	vpp_name      = "vpp-run"
@@ -60,7 +59,8 @@ func log(w io.Writer, format string, args ...interface{}) (i int, err error) {
 }
 
 func logDebug(format string, args ...interface{}) (i int, err error) {
-	return fmt.Fprintf(os.Stderr, "%s (debug):\n%s", os.Args[0], fmt.Sprintf(format, args...))
+	return fmt.Fprintf(os.Stderr, "%s (debug):\n%s", os.Args[0],
+		fmt.Sprintf(format, args...))
 }
 
 func logInfo(format string, args ...interface{}) {
@@ -134,6 +134,11 @@ func get_commit_id() string {
 
 func del_container(name string) bool {
 	return run(false, "docker", "rm", "-f", name)
+}
+
+func (t tool) check_image() bool {
+	return run(t.debug, "docker", "image", "inspect", "--format='.'",
+		fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag))
 }
 
 func (t tool) install_image(online bool) bool {
@@ -225,17 +230,15 @@ func (t tool) deploy_vpp(name string) bool {
 }
 
 func print_usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s: <install|setup|build|<deploy [vpp-run]>\n",
+	fmt.Fprintf(os.Stderr, "Usage of %s: <setup|<deploy [vpp-run]>|build>\n",
 		os.Args[0])
-	// TODO: add howto run informations, and use cases
-	fmt.Fprintf(os.Stderr, "\t1) install (required only once)"+
-		"\n\t2) setup (configures vpp dependencies based on commit id)"+
-		"\n\t3) build (required after chaning commit id)\n")
+	fmt.Fprintf(os.Stderr, "setup & deploy (build only for advanced workflow)\n")
 	flag.PrintDefaults()
-	os.Exit(1)
 }
 
 func main() {
+
+	var success bool
 
 	t := tool{
 		setup: image{
@@ -265,37 +268,48 @@ func main() {
 
 	flag.Parse()
 
-	if flag.NArg() < 1 {
-		print_usage()
+	// try to install setup image if there is none
+	if !t.check_image() {
+		t.install_image(*online)
 	}
 
-	var success = true
+	// TODO:
+	// 1) production image (production environment)
+	// 2) development image (development environment)
+	// 3) building over buildkit
+	// 4) remote building
 
 	switch flag.Arg(0) {
-	case "install":
-		success = t.install_image(*online)
+	default:
+		print_usage()
+	case "deploy":
+		// should setup && build, if there is none build image
+		if flag.NArg() < 2 {
+			success = t.deploy_vpp(vpp_name)
+		} else {
+			success = t.deploy_vpp(flag.Arg(1))
+		}
+		if !success {
+			os.Exit(1)
+		}
 	case "setup":
 		if len(t.commit) <= 0 && t.get_commit {
 			t.commit = get_commit_id()
 			logInfo("using commit-id: %s", t.commit)
 		}
 		success = t.setup_image(tmp_container, t.setup, t.build)
+		if !success {
+			os.Exit(1)
+		}
+		fallthrough
 	case "build":
 		success = t.build_image(tmp_container, t.build, t.build)
-	case "deploy":
-		if flag.NArg() < 2 {
-			success = t.deploy_vpp(vpp_name)
-		} else {
-			success = t.deploy_vpp(flag.Arg(1))
+		if !success {
+			os.Exit(1)
 		}
-	default:
-		print_usage()
 	}
 
-	if success {
-		os.Exit(0)
-	}
-	os.Exit(1)
+	os.Exit(0)
 }
 
 /* vim: set ts=2: */
