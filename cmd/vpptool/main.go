@@ -270,7 +270,11 @@ func main() {
 
 	// try to install setup image if there is none
 	if !t.check_image() {
-		t.install_image(*online)
+		logInfo("installing")
+		success = t.install_image(*online)
+		if !success {
+			os.Exit(1)
+		}
 	}
 
 	// TODO:
@@ -308,7 +312,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
 	os.Exit(0)
 }
 
