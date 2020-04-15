@@ -18,5 +18,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 vppctl="$(echo -e "${vppctl}" | tr -d '[:space:]')"
-# TODO: wait a bit until vpp starts / exit with error
+
+# wait indefinitely for vpp to start
+while true; do
+  docker exec -it $name ls /run/vpp/cli.sock &> /dev/null
+  if [ $? -eq 0 ]; then
+    break
+  fi
+  sleep 1
+done
 docker exec -it $name $vppctl ${@:2}
