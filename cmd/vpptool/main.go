@@ -191,7 +191,7 @@ func (t tool) build_image(name string, src image, dst image) bool {
 
 	if len(t.src) > 0 {
 		success = run(t.debug, "docker", "run", "--name", name, "-v",
-			fmt.Sprintf("%s:/opt/vpp/src", t.plugin),
+			fmt.Sprintf("%s:/opt/vpp/src", t.src),
 			fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), "make", "build")
 	} else if len(t.plugin) > 0 {
 		success = run(t.debug, "docker", "run", "--name", name, "-v",
@@ -282,6 +282,7 @@ func main() {
 	// 2) development image (development environment)
 	// 3) building over buildkit
 	// 4) remote building
+	// 5) self update
 
 	switch flag.Arg(0) {
 	default:
