@@ -11,3 +11,5 @@ UNATTENDED=y apt install libssl-dev -y
 UNATTENDED=y make install-dep
 UNATTENDED=y make install-ext-deps
 rm -rf /var/lib/apt/lists
+
+make checkstyle-test
