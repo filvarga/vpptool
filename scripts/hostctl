@@ -24,6 +24,7 @@ shell="$(echo -e "${shell}" | tr -d '[:space:]')"
 
 if [ $# -gt 1 ]
 then
+  # TODO: build a string from ${@:2}
   docker exec -it $name $shell -c ${@:2}
 else
   docker exec -it $name $shell

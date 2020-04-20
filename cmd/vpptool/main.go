@@ -141,7 +141,7 @@ func (t tool) check_image() bool {
 		fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag))
 }
 
-func (t tool) install_image(online bool) bool {
+func (t tool) install_image(update bool) bool {
 	var success = false
 
 	user, err := user.Current()
@@ -150,7 +150,9 @@ func (t tool) install_image(online bool) bool {
 		goto done
 	}
 
-	if online {
+	// TODO: go through the logic and figure out alternative
+	// behavior
+	if update {
 		success = run(t.debug, "docker", "build", "--pull",
 			"--build-arg", fmt.Sprintf("IDU=%s", user.Uid),
 			"--build-arg", fmt.Sprintf("IDG=%s", user.Gid),
@@ -248,7 +250,7 @@ func main() {
 	}
 
 	flag.BoolVar(&t.debug, "debug", false, "print debug output")
-	online := flag.Bool("online", false, "force update base docker image")
+	update := flag.Bool("update", false, "run vpptool update")
 
 	// required for setup phase
 	flag.StringVar(&t.commit, "commit-id", "", "commit id")
@@ -269,9 +271,9 @@ func main() {
 	flag.Parse()
 
 	// try to install setup image if there is none
-	if !t.check_image() {
+	if !t.check_image() || *update {
 		logInfo("installing")
-		success = t.install_image(*online)
+		success = t.install_image(*update)
 		if !success {
 			os.Exit(1)
 		}
