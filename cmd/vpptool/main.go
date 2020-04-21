@@ -219,7 +219,12 @@ func (t tool) deploy_vpp(name string) bool {
 
 	del_container(name)
 
-	if len(t.plugin) > 0 {
+	if len(t.src) > 0 {
+		return run(t.debug, "docker", "run", "-it", "--cap-add=all", "--privileged",
+			"-d", "--network", "host", "--name", name, "-v",
+			fmt.Sprintf("%s:/opt/vpp/src", t.src),
+			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
+	} else if len(t.plugin) > 0 {
 		return run(t.debug, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-d", "--network", "host", "--name", name, "-v",
 			fmt.Sprintf("%s:/opt/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
