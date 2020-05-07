@@ -1,10 +1,16 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]
-  then
-    name='vpp-run'
-  else
-    name=$1
+if [[ -z "${VPP_BOX}" ]]; then
+  if [ $# -eq 0 ]
+    then
+     name='vpp-run'
+   else
+     name=$1
+     args=${@:2}
+  fi
+else
+  name=$VPP_BOX
+  args=${@:1}
 fi
 
 state=$(docker inspect -f '{{.State.Running}}' $name)
@@ -27,4 +33,4 @@ while true; do
   fi
   sleep 1
 done
-docker exec -it $name $vppctl ${@:2}
+docker exec -it $name $vppctl $args
