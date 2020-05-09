@@ -148,7 +148,7 @@ func del_container(name string) bool {
 }
 
 func (t tool) check_image(img image) bool {
-	return run(t.debug, "docker", "image", "inspect", "--format='.'",
+	return run(false, "docker", "image", "inspect", "--format='.'",
 		fmt.Sprintf("%s:%s", img.vpp_image, img.vpp_tag))
 }
 
