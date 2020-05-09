@@ -7,7 +7,7 @@ CMD ["/bin/bash"]
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-    git gdb vim less \
+    git gdb sudo vim less \
     ca-certificates \
     build-essential \
     openssh-client \
