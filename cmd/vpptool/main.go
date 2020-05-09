@@ -13,6 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+// TODO:
+//		 production/development builds
+//		 building over buildkit
+//		 remote building
+// TODO:
+//		 consider developing inside the container all the time ...
+//		 - remote building colides wit this ?
+//		 - or if we have remote docker containers with all vim data
+//			 could this make it even better in the sense of being able
+//			 to connect from anywhere and develop righ in docker container
+
 package main
 
 import (
@@ -21,7 +33,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"syscall"
 )
@@ -31,8 +42,8 @@ const (
 	tmp_container = "vpptool-container"
 	vpp_name      = "vpp-run"
 	vpp_image     = "vpptool-images"
-	vpp_setup_tag = "setup"
-	vpp_build_tag = "build"
+	setup_tag     = "setup"
+	build_tag     = "build"
 )
 
 type image struct {
@@ -136,80 +147,32 @@ func del_container(name string) bool {
 	return run(false, "docker", "rm", "-f", name)
 }
 
-func (t tool) check_image() bool {
+func (t tool) check_image(img image) bool {
 	return run(t.debug, "docker", "image", "inspect", "--format='.'",
-		fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag))
+		fmt.Sprintf("%s:%s", img.vpp_image, img.vpp_tag))
 }
 
-func (t tool) install_image(update bool) bool {
-	var success = false
-
-	user, err := user.Current()
-	if err != nil {
-		logError(err.Error())
-		goto done
-	}
-
-	// TODO: go through the logic and figure out alternative
-	// behavior
-	if update {
-		success = run(t.debug, "docker", "build", "--pull",
-			"--build-arg", fmt.Sprintf("IDU=%s", user.Uid),
-			"--build-arg", fmt.Sprintf("IDG=%s", user.Gid),
-			"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
-			t.context)
-
-	} else {
-		success = run(t.debug, "docker", "build",
-			"--build-arg", fmt.Sprintf("IDU=%s", user.Uid),
-			"--build-arg", fmt.Sprintf("IDG=%s", user.Gid),
-			"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
-			t.context)
-	}
-
-done:
-	return success
+func (t tool) build_setup_image() bool {
+	return run(t.debug, "docker", "build",
+		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
+		t.context)
 }
 
-func (t tool) setup_image(name string, src image, dst image) bool {
-
-	del_container(name)
-	defer del_container(name)
-
-	success := run(t.debug, "docker", "run", "--name", name,
-		"-e", fmt.Sprintf("CID=%s", t.commit),
-		fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag)) &&
-		run(t.debug, "docker", "commit", name,
-			fmt.Sprintf("%s:%s", dst.vpp_image, dst.vpp_tag))
-
-	return success
-}
-
-func (t tool) build_image(name string, src image, dst image) bool {
+func (t tool) build_cache_image(name string, script string, src image, dst image) bool {
 	var success bool
 
 	del_container(name)
 	defer del_container(name)
 
-	if len(t.src) > 0 {
-		success = run(t.debug, "docker", "run", "--name", name, "-v",
-			fmt.Sprintf("%s:/opt/vpp/src", t.src),
-			fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), "make", "build")
-	} else if len(t.plugin) > 0 {
-		success = run(t.debug, "docker", "run", "--name", name, "-v",
-			fmt.Sprintf("%s:/opt/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
-			fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), "make", "build")
-	} else {
-		success = run(t.debug, "docker", "run", "--name", name,
-			fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), "make", "build")
-	}
+	success = run(t.debug, "docker", "run", "--name", name,
+		"-e", fmt.Sprintf("CID=%s", t.commit),
+		fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), script)
 
 	if !success {
 		return false
 	}
 
-	success = run(t.debug, "docker", "commit",
-		"--change=cmd [\"/scripts/startup\"]", name,
+	success = run(t.debug, "docker", "commit", name,
 		fmt.Sprintf("%s:%s", dst.vpp_image, dst.vpp_tag))
 
 	return success
@@ -237,28 +200,34 @@ func (t tool) deploy_vpp(name string) bool {
 }
 
 func print_usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s: <setup|<deploy [vpp-run]>|build>\n",
+	fmt.Fprintf(os.Stderr, "Usage of %s: <build|<deploy [vpp-run]>>\n",
 		os.Args[0])
-	fmt.Fprintf(os.Stderr, "setup & deploy (build only for advanced workflow)\n")
+	fmt.Fprintf(os.Stderr, "build & deploy\n")
 	flag.PrintDefaults()
 }
 
 func main() {
 
 	var success bool
+	var src, dst image
 
 	t := tool{
 		setup: image{
 			vpp_image: vpp_image,
-			vpp_tag:   vpp_setup_tag,
+			vpp_tag:   setup_tag,
 		},
 	}
 
+	// TODO: don't log output of build commands rather have better info logging
 	flag.BoolVar(&t.debug, "debug", false, "print debug output")
-	update := flag.Bool("update", false, "run vpptool update")
+
+	// for updating cache / setup images
+	setup := flag.Bool("setup", false, "rebuild setup image")
+	cache := flag.Bool("cache", false, "rebuild cache image")
 
 	// required for setup phase
 	flag.StringVar(&t.commit, "commit-id", "", "commit id")
+	// will be unused when we switch to full workstation scenario
 	flag.BoolVar(&t.get_commit, "commit-get", false,
 		"use current dir commit id")
 
@@ -266,7 +235,8 @@ func main() {
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
 
 	flag.StringVar(&t.build.vpp_image, "image", vpp_image, "build docker image")
-	flag.StringVar(&t.build.vpp_tag, "tag", vpp_build_tag, "build docker tag")
+	// only the final image should be tagged
+	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
 	// mounts over container src ./vpp/src
 	flag.StringVar(&t.src, "src", "", "src folder")
@@ -275,27 +245,10 @@ func main() {
 
 	flag.Parse()
 
-	// try to install setup image if there is none
-	if !t.check_image() || *update {
-		logInfo("installing")
-		success = t.install_image(*update)
-		if !success {
-			os.Exit(1)
-		}
-	}
-
-	// TODO:
-	// 1) production image (production environment)
-	// 2) development image (development environment)
-	// 3) building over buildkit
-	// 4) remote building
-	// 5) self update
-
 	switch flag.Arg(0) {
 	default:
 		print_usage()
 	case "deploy":
-		// should setup && build, if there is none build image
 		if flag.NArg() < 2 {
 			success = t.deploy_vpp(vpp_name)
 		} else {
@@ -304,19 +257,40 @@ func main() {
 		if !success {
 			os.Exit(1)
 		}
-	case "setup":
+	case "build":
+		if !t.check_image(t.setup) || *setup {
+			logInfo("building setup image...")
+			success = t.build_setup_image()
+			if !success {
+				logError("error building image")
+				os.Exit(1)
+			}
+		}
+
 		if len(t.commit) <= 0 && t.get_commit {
 			t.commit = get_commit_id()
 			logInfo("using commit-id: %s", t.commit)
 		}
-		success = t.setup_image(tmp_container, t.setup, t.build)
+
+		src = t.build
+		dst = t.build
+
+		if !t.check_image(t.build) || *cache {
+			logInfo("building cache image...")
+			src = t.setup
+		}
+
+		// consider adding additional files as patches etc. in this stage
+
+		success = t.build_cache_image(tmp_container, "/scripts/cache", src, dst)
 		if !success {
+			logError("error caching dependencies")
 			os.Exit(1)
 		}
-		fallthrough
-	case "build":
-		success = t.build_image(tmp_container, t.build, t.build)
+
+		success = t.build_cache_image(tmp_container, "/scripts/build", dst, dst)
 		if !success {
+			logError("error building")
 			os.Exit(1)
 		}
 	}

@@ -1,0 +1,11 @@
+#!/bin/bash
+set -eux
+# git force checkout master
+git checkout -f master
+git pull
+git checkout $CID -b workspace
+# if one of these fails recache is required
+# this can be automatic ofc.
+UNATTENDED=y make install-dep
+UNATTENDED=y make install-ext-deps
+rm -rf /var/lib/apt/lists
