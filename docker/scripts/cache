@@ -1,7 +1,9 @@
 #!/bin/bash
-set -eux
-# git force checkout master
+set -ux
 git checkout -f master
+git branch -D workspace &> /dev/null
+set -e
+# git force checkout master
 git pull
 git checkout $CID -b workspace
 # if one of these fails recache is required
