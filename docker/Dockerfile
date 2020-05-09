@@ -59,3 +59,4 @@ ENV LANG=C.UTF-8
 COPY ./scripts/restart /scripts/restart
 COPY ./scripts/startup /scripts/startup
 COPY ./scripts/build   /scripts/build
+COPY ./scripts/cache   /scripts/cache
