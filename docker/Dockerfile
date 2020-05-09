@@ -10,7 +10,7 @@ RUN set -eux; \
     git gdb vim less \
     ca-certificates \
     build-essential \
-    openssh-client
+    openssh-client \
     libssl-dev; \
     rm -rf /var/lib/apt/lists/*
 
