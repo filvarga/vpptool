@@ -258,6 +258,10 @@ func main() {
 			os.Exit(1)
 		}
 	case "build":
+		src = t.build
+		dst = t.build
+
+		// if setup also rebuild cache
 		if !t.check_image(t.setup) || *setup {
 			logInfo("building setup image...")
 			success = t.build_setup_image()
@@ -265,6 +269,7 @@ func main() {
 				logError("error building image")
 				os.Exit(1)
 			}
+			src = t.setup
 		}
 
 		if len(t.commit) <= 0 && t.get_commit {
@@ -272,16 +277,12 @@ func main() {
 			logInfo("using commit-id: %s", t.commit)
 		}
 
-		src = t.build
-		dst = t.build
-
 		if !t.check_image(t.build) || *cache {
 			logInfo("building cache image...")
 			src = t.setup
 		}
 
 		// consider adding additional files as patches etc. in this stage
-
 		success = t.build_cache_image(tmp_container, "/scripts/cache", src, dst)
 		if !success {
 			logError("error caching dependencies")
