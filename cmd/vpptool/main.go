@@ -62,16 +62,11 @@ type tool struct {
 	plugin       string
 	get_commit   bool
 	commit       string
-	debug        bool
+	quiet        bool
 }
 
 func log(w io.Writer, format string, args ...interface{}) (i int, err error) {
 	return fmt.Fprintf(w, "%s: %s\n", os.Args[0], fmt.Sprintf(format, args...))
-}
-
-func logDebug(format string, args ...interface{}) (i int, err error) {
-	return fmt.Fprintf(os.Stderr, "%s (debug):\n%s", os.Args[0],
-		fmt.Sprintf(format, args...))
 }
 
 func logInfo(format string, args ...interface{}) {
@@ -82,45 +77,42 @@ func logError(format string, args ...interface{}) {
 	log(os.Stderr, format, args...)
 }
 
-func run_command(command string, args ...string) (bool, string) {
-
-	cmd := exec.Command(command, args...)
-
-	dir, err := os.Getwd()
+func run_command(cmd exec.Cmd) bool {
+	var status = false
+	err := cmd.Run()
 	if err == nil {
-		cmd.Dir = dir
-	}
-
-	var status = true
-	var output []byte
-	var ws syscall.WaitStatus
-
-	output, err = cmd.CombinedOutput()
-	if err != nil {
-		status = false
-		goto done
-	}
-
-	ws = cmd.ProcessState.Sys().(syscall.WaitStatus)
-	if ws.ExitStatus() != 0 {
-		status = false
-		goto done
-	}
-
-done:
-	return status, string(output)
-}
-
-func run(debug bool, command string, args ...string) bool {
-	status, out := run_command(command, args...)
-	if debug {
-		logDebug(out)
+		ws := cmd.ProcessState.Sys().(syscall.WaitStatus)
+		if ws.ExitStatus() == 0 {
+			status = true
+		}
 	}
 	return status
 }
 
+func run_command_v2(cmd exec.Cmd) (bool, string) {
+	var status = false
+	output, err := cmd.CombinedOutput()
+	if err == nil {
+		ws := cmd.ProcessState.Sys().(syscall.WaitStatus)
+		if ws.ExitStatus() == 0 {
+			status = true
+		}
+	}
+	return status, string(output)
+}
+
+func run(quiet bool, command string, args ...string) bool {
+	cmd := exec.Command(command, args...)
+	if quiet == false {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
+	return run_command(*cmd)
+}
+
 func get_current_commit_id() (bool, string) {
-	return run_command("git", "show", "--pretty=format:\"%H\"", "--no-patch")
+	cmd := exec.Command("git", "show", "--pretty=format:\"%H\"", "--no-patch")
+	return run_command_v2(*cmd)
 }
 
 func get_commit_id() string {
@@ -153,7 +145,7 @@ func (t tool) check_image(img image) bool {
 }
 
 func (t tool) build_setup_image() bool {
-	return run(t.debug, "docker", "build",
+	return run(t.quiet, "docker", "build",
 		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
 		t.context)
 }
@@ -164,7 +156,7 @@ func (t tool) build_cache_image(name string, script string, src image, dst image
 	del_container(name)
 	defer del_container(name)
 
-	success = run(t.debug, "docker", "run", "--name", name,
+	success = run(t.quiet, "docker", "run", "--name", name,
 		"-e", fmt.Sprintf("CID=%s", t.commit),
 		fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), script)
 
@@ -172,7 +164,7 @@ func (t tool) build_cache_image(name string, script string, src image, dst image
 		return false
 	}
 
-	success = run(t.debug, "docker", "commit",
+	success = run(t.quiet, "docker", "commit",
 		"--change=cmd [\"/bin/bash\"]", name,
 		fmt.Sprintf("%s:%s", dst.vpp_image, dst.vpp_tag))
 
@@ -184,17 +176,17 @@ func (t tool) deploy_vpp(name string) bool {
 	del_container(name)
 
 	if len(t.src) > 0 {
-		return run(t.debug, "docker", "run", "-it", "--cap-add=all", "--privileged",
+		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-d", "--network", "host", "--name", name, "-v",
 			fmt.Sprintf("%s:/opt/vpp/src", t.src),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else if len(t.plugin) > 0 {
-		return run(t.debug, "docker", "run", "-it", "--cap-add=all", "--privileged",
+		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-d", "--network", "host", "--name", name, "-v",
 			fmt.Sprintf("%s:/opt/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else {
-		return run(t.debug, "docker", "run", "-it", "--cap-add=all", "--privileged",
+		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-d", "--network", "host", "--name", name,
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	}
@@ -219,8 +211,7 @@ func main() {
 		},
 	}
 
-	// TODO: don't log output of build commands rather have better info logging
-	flag.BoolVar(&t.debug, "debug", false, "print debug output")
+	flag.BoolVar(&t.quiet, "quiet", false, "run quietly")
 
 	// for updating cache / setup images
 	setup := flag.Bool("setup", false, "rebuild setup image")
