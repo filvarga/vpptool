@@ -56,7 +56,7 @@ ENV STARTUP_CONF=/etc/startup.conf
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-COPY ./scripts/restart /scripts/restart
-COPY ./scripts/startup /scripts/startup
-COPY ./scripts/build   /scripts/build
-COPY ./scripts/cache   /scripts/cache
+COPY ./scripts/kill  /scripts/kill
+COPY ./scripts/start /scripts/start
+COPY ./scripts/build /scripts/build
+COPY ./scripts/cache /scripts/cache
