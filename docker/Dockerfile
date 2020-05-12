@@ -1,9 +1,9 @@
 FROM ubuntu:18.04
 
-CMD ["/bin/bash"]
-
 # INFO: missing dependencie in make install-dep !!!
 # required by install-ext-deps
+# INFO: scpay requires additional stuff to work
+# netbase, ebtables
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
@@ -11,7 +11,7 @@ RUN set -eux; \
     ca-certificates \
     build-essential \
     openssh-client \
-    libssl-dev; \
+    libssl-dev netbase ebtables; \
     rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
