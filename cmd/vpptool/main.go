@@ -136,11 +136,11 @@ func get_commit_id() string {
 }
 
 func del_container(name string) bool {
-	return run(false, "docker", "rm", "-f", name)
+	return run(true, "docker", "rm", "-f", name)
 }
 
 func (t tool) check_image(img image) bool {
-	return run(false, "docker", "image", "inspect", "--format='.'",
+	return run(true, "docker", "image", "inspect", "--format='.'",
 		fmt.Sprintf("%s:%s", img.vpp_image, img.vpp_tag))
 }
 
