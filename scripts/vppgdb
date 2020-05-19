@@ -1,10 +1,16 @@
 #!/bin/bash
 
-if [ $# -eq 0 ]
-then
-  name='vpp-run'
+if [[ -z "${VPP_BOX}" ]]; then
+  if [ $# -eq 0 ]
+    then
+     name='vpp-run'
+   else
+     name=$1
+     args=${@:2}
+  fi
 else
-  name=$1
+  name=$VPP_BOX
+  args=${@:1}
 fi
 
 pid=$(docker exec -it $name pidof vpp | tr -d '\r')
@@ -13,7 +19,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ $# -ge 2 ]; then
-  for point in "${@:2}"; do
+  for point in "${args}"; do
     tmp=$str
     str="${tmp}br ${point}\n"
   done

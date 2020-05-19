@@ -16,13 +16,4 @@ state="$(echo -e "${state}" | tr -d '[:space:]')"
 if [[ "$state" != "true" ]]; then
   docker start $name &> /dev/null
 fi
-
-shell=$(docker exec -it $name which bash)
-if [ $? -ne 0 ]; then
-  shell=$(docker exec -it $name which sh)
-fi
-if [ $? -ne 0 ]; then
-  exit 1
-fi
-shell="$(echo -e "${shell}" | tr -d '[:space:]')"
-docker exec -it $name $shell
+docker exec -it $name /scripts/start
