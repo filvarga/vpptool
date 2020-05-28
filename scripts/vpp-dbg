@@ -18,13 +18,12 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-if [ $# -ge 2 ]; then
-  for point in "${args}"; do
-    tmp=$str
-    str="${tmp}br ${point}\n"
-  done
-  docker exec -it $name bash -c "printf $str > /tmp/bpoints"
-  docker exec -it $name gdb -p $pid -cd=/opt/vpp -x /tmp/bpoints
-else
+if [[ -z "${args}" ]]; then
   docker exec -it $name gdb -p $pid -cd=/opt/vpp
+else
+  for point in "${args}"; do
+    printf "br ${point}\n" > /tmp/bpoints
+  done
+  docker cp /tmp/bpoints $name:/tmp/bpoints
+  docker exec -it $name gdb -p $pid -cd=/opt/vpp -x /tmp/bpoints
 fi
