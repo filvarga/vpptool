@@ -60,6 +60,7 @@ type tool struct {
 	context      string
 	src          string
 	plugin       string
+	start_vpp    bool
 	get_commit   bool
 	commit       string
 	quiet        bool
@@ -172,21 +173,28 @@ func (t tool) build_cache_image(name string, script string, src image, dst image
 }
 
 func (t tool) deploy_vpp(name string) bool {
+	var start_vpp int8
+	if t.start_vpp {
+		start_vpp = 1
+	}
 
 	del_container(name)
 
 	if len(t.src) > 0 {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
+			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
 			"-d", "--network", "host", "--name", name, "-v",
 			fmt.Sprintf("%s:/opt/vpp/src/%s", t.src, filepath.Base(t.src)),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else if len(t.plugin) > 0 {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
+			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
 			"-d", "--network", "host", "--name", name, "-v",
 			fmt.Sprintf("%s:/opt/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
+			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
 			"-d", "--network", "host", "--name", name,
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	}
@@ -234,6 +242,10 @@ func main() {
 	flag.StringVar(&t.src, "src", "", "src folder")
 	// mounts over container src ./vpp/src/plugins/<plugin>
 	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
+
+	// will be unused when we switch to full workstation scenario
+	flag.BoolVar(&t.start_vpp, "start-vpp", false,
+		"autostart vpp in deployed container")
 
 	flag.Parse()
 
