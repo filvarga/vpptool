@@ -165,7 +165,7 @@ func (t tool) build_cache_image(name string, script string, src image, dst image
 	}
 
 	success = run(t.quiet, "docker", "commit",
-		"--change=cmd [\"/bin/bash\"]", name,
+		"--change=cmd [\"/scripts/start\"]", name,
 		fmt.Sprintf("%s:%s", dst.vpp_image, dst.vpp_tag))
 
 	return success
