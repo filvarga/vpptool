@@ -244,8 +244,8 @@ func main() {
 	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
 
 	// will be unused when we switch to full workstation scenario
-	flag.BoolVar(&t.start_vpp, "start-vpp", false,
-		"autostart vpp in deployed container")
+	flag.BoolVar(&t.start_vpp, "running", false,
+		"vpp is running in deployed container")
 
 	flag.Parse()
 
