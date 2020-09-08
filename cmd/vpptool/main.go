@@ -222,7 +222,7 @@ func main() {
 	flag.BoolVar(&t.quiet, "quiet", false, "run quietly")
 
 	// for updating cache / setup images
-	setup := flag.Bool("setup", false, "rebuild setup image")
+	setup := flag.Bool("setup", false, "rebuild setup image using context url")
 	cache := flag.Bool("cache", false, "rebuild cache image")
 
 	// required for setup phase

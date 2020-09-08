@@ -55,7 +55,9 @@ COPY ./conf/vpp.conf     /etc/vpp.conf
 ENV STARTUP_CONF=/etc/startup.conf
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+ENV PATH="/scripts:${PATH}"
 
+COPY ./scripts/test  /scripts/test
 COPY ./scripts/kill  /scripts/kill
 COPY ./scripts/start /scripts/start
 COPY ./scripts/build /scripts/build

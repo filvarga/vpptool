@@ -1,0 +1,2 @@
+#!/bin/bash
+/scripts/build && STARTUP_CONF= make run
