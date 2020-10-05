@@ -1,0 +1,30 @@
+#!/bin/bash
+vpp=~/git/vpp
+nat=$vpp/src/plugins/nat
+container="vpp-run"
+
+cd $vpp
+set -eux
+
+if [[ -z "$(git status --porcelain)" ]]; then 
+    # Working directory clean
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    git co master
+    git pull
+    git co $branch
+    git rebase master
+    if [[ $? == 0 ]]; then
+        vpptool -tag master build
+        vpptool -tag master -plugin $nat deploy
+        docker exec $container bash -c "git add src/*"
+        docker exec $container bash -c "git commit -a -m 'rebased'"
+        docker exec $container /scripts/build
+        exit 0
+      else
+        git rebase --abort
+        echo "error: rebase not possible"
+    fi
+  else
+    echo "error: working directory is not clean"
+fi
+exit 1

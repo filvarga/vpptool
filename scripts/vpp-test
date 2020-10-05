@@ -1,0 +1,12 @@
+#!/bin/bash
+vpp=~/git/vpp
+nat=$vpp/src/plugins/nat
+container="vpp-test"
+
+set -eux
+
+vpptool -tag master -plugin $nat deploy $container
+
+docker exec $container bash -c "git add src/*"
+docker exec $container bash -c "git commit -a -m 'patched'"
+docker exec $container bash -c "make test-debug TEST=${@:1}"

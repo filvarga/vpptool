@@ -16,4 +16,4 @@ state="$(echo -e "${state}" | tr -d '[:space:]')"
 if [[ "$state" != "true" ]]; then
   docker start $name &> /dev/null
 fi
-docker exec -it $name /scripts/start
+docker exec -e START_VPP=1 -it $name /scripts/start

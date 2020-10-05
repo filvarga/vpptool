@@ -1,0 +1,18 @@
+#!/bin/bash
+vpp=~/git/vpp
+
+cd $vpp
+set -eux
+
+if [[ -z "$(git status --porcelain)" ]]; then 
+    # Working directory clean
+    branch=$(git rev-parse --abbrev-ref HEAD)
+    git co master
+    git pull
+    git co $branch
+    vpptool -tag master build
+    exit 0
+  else
+    echo "error: working directory is not clean"
+fi
+exit 1
