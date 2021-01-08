@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [[ -z "${VPP_BOX}" ]]; then
+  if [ $# -eq 0 ]
+    then
+     name='vpp-run'
+   else
+     name=$1
+  fi
+else
+  name=$VPP_BOX
+fi
+
+state=$(docker inspect -f '{{.State.Running}}' $name)
+state="$(echo -e "${state}" | tr -d '[:space:]')"
+if [[ "$state" != "true" ]]; then
+  docker start $name &> /dev/null
+fi
+docker exec -it $name bash
