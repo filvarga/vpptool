@@ -1,10 +1,17 @@
 #!/bin/bash
-vpp=~/git/vpp
-nat=$vpp/src/plugins/nat
 container="vpp-run"
 
-cd $vpp
-set -eux
+set -ex
+
+if [[ -z "$VPP" ]]; then
+  VPP=~/git/vpp
+fi
+
+if [[ -z "$PLUGIN" ]]; then
+  PLUGIN=$VPP/src/plugin/nat
+fi
+
+cd $VPP
 
 if [[ -z "$(git status --porcelain)" ]]; then 
     # Working directory clean
@@ -15,7 +22,7 @@ if [[ -z "$(git status --porcelain)" ]]; then
     git rebase master
     if [[ $? == 0 ]]; then
         vpptool -tag master build
-        vpptool -tag master -plugin $nat deploy
+        vpptool -tag master -plugin $PLUGIN deploy
         docker exec $container bash -c "git add src/*"
         docker exec $container bash -c "git commit -a -m 'rebased'"
         docker exec $container /scripts/build
