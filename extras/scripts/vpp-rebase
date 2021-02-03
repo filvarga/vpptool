@@ -8,7 +8,7 @@ if [[ -z "$VPP" ]]; then
 fi
 
 if [[ -z "$PLUGIN" ]]; then
-  PLUGIN=$VPP/src/plugin/nat
+  PLUGIN=$VPP/src/plugins/nat
 fi
 
 cd $VPP
