@@ -1,16 +1,19 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
+
+ENV TZ=Europe/Bratislava
 
 # INFO: missing dependencie in make install-dep !!!
 # required by install-ext-deps
 # INFO: scpay requires additional stuff to work
 # netbase, ebtables
+# INFO: python3 requirement for make
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
     git gdb sudo vim less \
     ca-certificates \
     build-essential \
-    openssh-client \
+    openssh-client python3 python3-pip \
     libssl-dev netbase ebtables; \
     rm -rf /var/lib/apt/lists/*
 
@@ -47,7 +50,7 @@ RUN set -eux; \
     mkdir -p /var/log/vpp
 
 RUN set -eux; \
-    UNATTENDED=y make install-dep
+    DEBIAN_FRONTEND="noninteractive" UNATTENDED=y make install-dep
 
 COPY ./conf/startup.conf /etc/startup.conf
 COPY ./conf/vpp.conf     /etc/vpp.conf
