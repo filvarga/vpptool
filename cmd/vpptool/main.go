@@ -38,12 +38,15 @@ import (
 )
 
 const (
-	context       = "https://github.com/filvarga/vpptool.git#develop:docker"
 	tmp_container = "vpptool-container"
 	vpp_name      = "vpp-run"
 	vpp_image     = "vpptool-images"
 	setup_tag     = "setup"
 	build_tag     = "build"
+)
+
+var (
+	context = ""
 )
 
 type image struct {

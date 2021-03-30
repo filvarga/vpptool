@@ -3,12 +3,18 @@ GOCMD=go
 GOINSTALL=$(GOCMD) install
 GOBUILD=$(GOCMD) build
 
+BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
+
 TOOL_NAME=vpptool
+
+CONTEXT = "https://github.com/filvarga/vpptool.git\#$(BRANCH):docker"
+
+LDFLAGS=-ldflags "-X main.context=$(CONTEXT)" 
 
 all: install
 
 vpptool:
-	$(GOBUILD) -o build/$(TOOL_NAME) ./cmd/$(TOOL_NAME)
+	$(GOBUILD) $(LDFLAGS) -o build/$(TOOL_NAME) ./cmd/$(TOOL_NAME)
 
 install:
-	$(GOINSTALL) ./cmd/$(TOOL_NAME)
+	$(GOINSTALL) $(LDFLAGS) ./cmd/$(TOOL_NAME)
