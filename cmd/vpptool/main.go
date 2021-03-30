@@ -58,7 +58,6 @@ type tool struct {
 	startup_file string
 	config_file  string
 	context      string
-	src          string
 	plugin       string
 	start_vpp    bool
 	get_commit   bool
@@ -180,13 +179,7 @@ func (t tool) deploy_vpp(name string) bool {
 
 	del_container(name)
 
-	if len(t.src) > 0 {
-		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
-			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
-			"-d", "--network", "host", "--name", name, "-v",
-			fmt.Sprintf("%s:/opt/vpp/src/%s", t.src, filepath.Base(t.src)),
-			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
-	} else if len(t.plugin) > 0 {
+	if len(t.plugin) > 0 {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
 			"-d", "--network", "host", "--name", name, "-v",
@@ -238,8 +231,6 @@ func main() {
 	// only the final image should be tagged
 	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
-	// mounts over container src ./vpp/src
-	flag.StringVar(&t.src, "src", "", "src folder")
 	// mounts over container src ./vpp/src/plugins/<plugin>
 	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
 
