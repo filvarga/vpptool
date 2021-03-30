@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Filip Varga
+ * Copyright 2021 Filip Varga
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-// TODO:
-//		 production/development builds
-//		 building over buildkit
-//		 remote building
-// TODO:
-//		 consider developing inside the container all the time ...
-//		 - remote building colides wit this ?
-//		 - or if we have remote docker containers with all vim data
-//			 could this make it even better in the sense of being able
-//			 to connect from anywhere and develop righ in docker container
 
 package main
 
@@ -42,7 +31,7 @@ const (
 	vpp_name      = "vpp-run"
 	vpp_image     = "vpptool-images"
 	setup_tag     = "setup"
-	build_tag     = "build"
+	build_tag     = "master"
 )
 
 var (
@@ -168,7 +157,7 @@ func (t tool) build_cache_image(name string, script string, src image, dst image
 	}
 
 	success = run(t.quiet, "docker", "commit",
-		"--change=cmd [\"/scripts/start\"]", name,
+		"--change=cmd [\"/usr/local/bin/entrypoint\"]", name,
 		fmt.Sprintf("%s:%s", dst.vpp_image, dst.vpp_tag))
 
 	return success
@@ -186,7 +175,7 @@ func (t tool) deploy_vpp(name string) bool {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
 			"-d", "--network", "host", "--name", name, "-v",
-			fmt.Sprintf("%s:/opt/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
+			fmt.Sprintf("%s:/work/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
@@ -234,7 +223,7 @@ func main() {
 	// only the final image should be tagged
 	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
-	// mounts over container src ./vpp/src/plugins/<plugin>
+	// mounts in container ./vpp/src/plugins/<plugin>
 	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
 
 	// will be unused when we switch to full workstation scenario
@@ -280,14 +269,22 @@ func main() {
 			src = t.setup
 		}
 
-		// consider adding additional files as patches etc. in this stage
-		success = t.build_cache_image(tmp_container, "/scripts/cache", src, dst)
+		// stage1)
+		//	a) recreate build image from setup image
+		//		- clean image without dependencies
+		//	b) recreate build image from build image
+		//		- updates build image
+		success = t.build_cache_image(tmp_container,
+			"/usr/local/bin/stage1", src, dst)
 		if !success {
 			logError("error caching dependencies")
 			os.Exit(1)
 		}
 
-		success = t.build_cache_image(tmp_container, "/scripts/build", dst, dst)
+		// stage2)
+		//	builds vpp
+		success = t.build_cache_image(tmp_container,
+			"/usr/local/bin/stage2", dst, dst)
 		if !success {
 			logError("error building")
 			os.Exit(1)

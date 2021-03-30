@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo $VPP_BIN/vppctl ${@:1}

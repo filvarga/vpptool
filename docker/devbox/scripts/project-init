@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eux
+
+DEBIAN_FRONTEND=noninteractive
+UNATTENDED=y
+
+# requirement fixes for VPP project
+apt-get update
+apt-get install -y --no-install-recommends libssl-dev
+
+git clone https://github.com/FDio/vpp.git $VPP
+
+cd $VPP
+make install-dep
+make install-ext-deps
+make build
+
+pip3 install ipaddress scapy
+cd $VPP/src/vpp-api/python/
+python3 setup.py install
+
+rm -rf /var/lib/apt/lists/*

@@ -1,0 +1,110 @@
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
+set hlsearch                  " highlight all search matches
+
+set guifont=Source\ Code\ Pro\ Medium\ 13
+" hide menu,tool,scroll bars (gui)
+"set guioptions -=m 
+"set guioptions -=T
+"set guioptions -=r
+
+let bin= ":~/.local/bin"
+let scripts = ":~/git/vpptool/scripts"
+let scripts2 = ":~/share/docs/it/scripts"
+
+let go = ":/usr/local/go/bin"
+let gobin = ":~/go/bin"
+
+let $PATH .= bin.scripts.scripts2.go.gobin
+
+let g:vpp_dir = "~/git/vpp"
+let g:nat_dir = g:vpp_dir."/src/plugins/nat"
+let g:vpp_name = "vpp-run"
+
+let g:go_fmt_command = "goimports"
+
+"" Vundle
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+Plugin 'altercation/vim-colors-solarized'
+Plugin 'VundleVim/Vundle.vim'
+Plugin 'tpope/vim-fugitive'
+Plugin 'bling/vim-airline'
+Plugin 'fatih/vim-go'
+Plugin 'majutsushi/tagbar'
+call vundle#end()            " required
+filetype plugin indent on    " required
+"" End Vundle
+
+"let g:airline#extensions#tabline#enabled = 1
+"let g:airline_statusline_ontop=1
+
+set noerrorbells visualbell t_vb=
+
+syntax enable
+set background=light
+colorscheme solarized
+" numbering of lines:
+"set number
+
+nnoremap <C-n> :bnext<CR>
+nnoremap <C-p> :bprevious<CR>
+" use not use ??
+"map <C-y> :NERDTreeToggle<CR>
+
+"set term=screen-256color
+set t_ut=
+
+set expandtab
+"set tabstop=2
+set shiftwidth=2
+set softtabstop=2
+set encoding=utf-8
+
+set t_Co=256
+
+syntax on
+set tags=./tags;
+
+function Maximze()
+  set lines=999 columns=999
+endfunction
+autocmd GUIEnter * call Maximze()
+
+function FTags()
+  echo system("make -C ".g:vpp_dir." ctags")
+endfunction
+command Tags call FTags()
+
+function FStyle()
+  echo system("docker exec -i ".g:vpp_name." make fixstyle|tee /tmp/fixstyle.log")
+endfunction
+command Style call FStyle()
+
+function FBuild()
+  echo system("docker exec -i ".g:vpp_name." make build|tee /tmp/build.log")
+endfunction
+command Build call FBuild()
+
+" Later This Evening:
+"  0 #2B2B2B2B2B2B
+"  1 #D3D35A5A5F5F
+"  2 #AFAFBABA6666
+"  3 #E5E5D2D28989
+"  4 #A0A0B9B9D5D5
+"  5 #BFBF9292D5D5
+"  6 #9191BEBEB6B6
+"  7 #3B3B3C3C3C3C
+"  8 #444447474747
+"  9 #D3D322222E2E
+" 10 #AAAABBBB3939
+" 11 #E4E4BDBD3939
+" 12 #65659999D5D5
+" 13 #AAAA5252D5D5
+" 14 #5F5FBFBFADAD
+" 15 #C0C0C2C2C2C2
+" 16 #949494949494
+" 17 #212121212121
+

@@ -1,9 +1,0 @@
-#!/bin/bash
-cfg="/etc/startup.conf"
-vpp="/opt/vpp/build-root/install-vpp_debug-native/vpp/bin/vpp"
-rm -rf /run/vpp/cli.sock &> /dev/null
-if [ "$START_VPP" == "1" ]; then
-  $vpp -c $cfg
-else
-  bash
-fi

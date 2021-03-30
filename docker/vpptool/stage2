@@ -1,7 +1,6 @@
 #!/bin/bash
 set -eux
 make build
-pip3 install ipaddress scapy
 pushd src/vpp-api/python/
-python3 setup.py install
+python3 setup.py install --user
 popd

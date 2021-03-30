@@ -1,5 +1,4 @@
 #!/bin/bash
-/scripts/build
 export LD_LIBRARY_PATH=`find -name "libvppapiclient.so" -exec dirname {} \; | \
   grep install-vpp | head -n 1`
 python3 -i $1

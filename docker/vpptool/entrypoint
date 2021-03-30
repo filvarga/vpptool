@@ -1,0 +1,7 @@
+#!/bin/bash
+rm -rf /run/vpp/cli.sock &> /dev/null
+if [ "$START_VPP" == "1" ]; then
+  sudo $VPP_BIN/vpp -c $STARTUP_CONF
+else
+  sleep infinity
+fi

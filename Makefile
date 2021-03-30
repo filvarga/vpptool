@@ -7,7 +7,7 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 TOOL_NAME=vpptool
 
-CONTEXT = "https://github.com/filvarga/vpptool.git\#$(BRANCH):docker"
+CONTEXT = "https://github.com/filvarga/vpptool.git\#$(BRANCH):docker/vpptool"
 
 LDFLAGS=-ldflags "-X main.context=$(CONTEXT)" 
 

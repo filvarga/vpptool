@@ -1,2 +1,0 @@
-#!/bin/bash
-gdb /opt/vpp/build-root/install-vpp_debug-native/vpp/bin/vpp /tmp/vpp-failed-unittests/*/core
