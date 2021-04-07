@@ -1,2 +1,0 @@
-#!/bin/bash
-sudo $VPP_BIN/vpp ${@:1}

@@ -26,11 +26,8 @@ ENV VPP="${HOME}/vpp"
 ARG IDU=1000
 ARG IDG=1000
 
-RUN groupadd --gid $IDG user && \
-    useradd --uid $IDU --gid $IDG \
-            --home-dir $HOME \
-            --create-home \
-            --groups sudo user
+RUN groupadd --gid $IDG user && useradd --uid $IDU --gid $IDG \
+--home-dir $HOME --create-home --groups sudo user
 
 WORKDIR $HOME
 
@@ -45,17 +42,14 @@ WORKDIR $VPP
 RUN make install-dep
 
 ENV VPP_BIN="${VPP}/build-root/install-vpp_debug-native/vpp/bin"
-ENV SCRIPTS="${HOME}/scripts"
 ENV STARTUP_CONF=/etc/startup.conf
 
-COPY ./stage1 /usr/local/bin
-COPY ./stage2 /usr/local/bin
-COPY ./entrypoint /usr/local/bin
+COPY ./files/bash_aliases $HOME/.bash_aliases
 
-ADD ./scripts $SCRIPTS/
-ADD ./conf/etc /etc/
+ADD ./files/bin /usr/local/bin/
+ADD ./files/etc /etc
 
-ENV PATH="${PATH}:${SCRIPTS}:${HOME}/.local/bin"
+ENV PATH="${PATH}:${HOME}/.local/bin"
 
 RUN chown -R $IDU:$IDG $VPP
 

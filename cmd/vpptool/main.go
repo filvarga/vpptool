@@ -207,6 +207,22 @@ func print_usage() {
 	flag.PrintDefaults()
 }
 
+func notifySend(persistent bool, message string) {
+	if persistent == false {
+		run(true, "notify-send", "--icon", "applications-utilities",
+			"--urgency=normal", "vpptool", message)
+	} else {
+		run(true, "notify-send", "--icon", "applications-utilities",
+			"--urgency=critical", "vpptool", message)
+	}
+}
+
+func exitFailure(message string) {
+	notifySend(true, message)
+	logError(message)
+	os.Exit(1)
+}
+
 func main() {
 
 	var success bool
@@ -234,8 +250,8 @@ func main() {
 	// required for install phase (for building base docker image)
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
 
-	flag.StringVar(&t.git_mail, "git-mail", git_mail, "git user mail")
-	flag.StringVar(&t.git_name, "git-name", git_name, "git user name")
+	flag.StringVar(&t.git_mail, "git-user-mail", git_mail, "git user mail")
+	flag.StringVar(&t.git_name, "git-user-name", git_name, "git user name")
 	flag.IntVar(&t.idu, "uid", idu, "user uid")
 	flag.IntVar(&t.idg, "gid", idg, "user gid")
 
@@ -243,6 +259,7 @@ func main() {
 	// only the final image should be tagged
 	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
+	// mounting ./vpp/src does not work (cmake issues preventing building)
 	// mounts in container ./vpp/src/plugins/<plugin>
 	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
 
@@ -273,8 +290,7 @@ func main() {
 			logInfo("building setup image...")
 			success = t.build_setup_image()
 			if !success {
-				logError("error building image")
-				os.Exit(1)
+				exitFailure("error building image")
 			}
 			src = t.setup
 		}
@@ -297,8 +313,9 @@ func main() {
 		success = t.build_cache_image(tmp_container,
 			"/usr/local/bin/stage1", src, dst)
 		if !success {
-			logError("error caching dependencies")
-			os.Exit(1)
+			exitFailure("error caching dependencies")
+		} else {
+			notifySend(false, "build stage one done")
 		}
 
 		// stage2)
@@ -306,8 +323,9 @@ func main() {
 		success = t.build_cache_image(tmp_container,
 			"/usr/local/bin/stage2", dst, dst)
 		if !success {
-			logError("error building")
-			os.Exit(1)
+			exitFailure("error building")
+		} else {
+			notifySend(true, "build stage two done")
 		}
 	}
 	os.Exit(0)

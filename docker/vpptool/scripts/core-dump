@@ -1,2 +1,0 @@
-#!/bin/bash
-gdb $VPP_BIN/vpp /tmp/vpp-failed-unittests/*/core

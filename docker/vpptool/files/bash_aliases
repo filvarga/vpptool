@@ -1,0 +1,35 @@
+#!/bin/bash
+
+alias build='make build|tee /tmp/build.log'
+alias style='make fixstyle|tee /tmp/checkstyle.log'
+alias pstyle='make checkstyle-test|tee /tmp/checkstyle.log'
+alias tags='make -C $VPP ctags'
+alias test_cli='STARTUP_CONF= make run'
+alias core_dump='gdb $VPP_BIN/vpp /tmp/vpp-failed-unittests/*/core'
+
+function get_commit_id {
+  n=1
+  if [ ! -z ${1+x} ]; then
+    n=$1
+  fi
+  git log $2 --pretty=format:"%H" --no-patch | \
+    awk "{if (NR == ${n}) print}" | cut -d ' ' -f 1
+}
+
+function test_api {
+  export LD_LIBRARY_PATH=`find -name "libvppapiclient.so" -exec dirname {} \; | \
+    grep install-vpp | head -n 1`
+  python3 -i $1
+}
+
+function kill_vpp {
+  sudo kill -s 9 `pidof vpp`
+}
+
+function vpp {
+  sudo $VPP_BIN/vpp $1
+}
+
+function vppctl {
+  sudo $VPP_BIN/vppctl $1
+}
