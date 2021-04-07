@@ -32,10 +32,15 @@ const (
 	vpp_image     = "vpptool-images"
 	setup_tag     = "setup"
 	build_tag     = "master"
+	git_mail      = "john.doe@example.com"
+	git_name      = "John Doe"
+	idu           = 1000
+	idg           = 1000
 )
 
 var (
 	context = ""
+	git_url = ""
 )
 
 type image struct {
@@ -55,6 +60,11 @@ type tool struct {
 	get_commit   bool
 	commit       string
 	quiet        bool
+	git_url      string
+	git_mail     string
+	git_name     string
+	idu          int
+	idg          int
 }
 
 func log(w io.Writer, format string, args ...interface{}) (i int, err error) {
@@ -138,6 +148,11 @@ func (t tool) check_image(img image) bool {
 
 func (t tool) build_setup_image() bool {
 	return run(t.quiet, "docker", "build",
+		"--build-arg", fmt.Sprintf("GIT_MAIL:%s", t.git_mail),
+		"--build-arg", fmt.Sprintf("GIT_NAME:%s", t.git_name),
+		"--build-arg", fmt.Sprintf("GIT_URL:%s", t.git_url),
+		"--build-arg", fmt.Sprintf("IDU:%s", t.idu),
+		"--build-arg", fmt.Sprintf("IDG:%s", t.idg),
 		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
 		t.context)
 }
@@ -218,6 +233,11 @@ func main() {
 
 	// required for install phase (for building base docker image)
 	flag.StringVar(&t.context, "context", context, "setup docker context url")
+
+	flag.StringVar(&t.git_mail, "git-mail", git_mail, "git user mail")
+	flag.StringVar(&t.git_name, "git-name", git_name, "git user name")
+	flag.IntVar(&t.idu, "uid", idu, "user uid")
+	flag.IntVar(&t.idg, "gid", idg, "user gid")
 
 	flag.StringVar(&t.build.vpp_image, "image", vpp_image, "build docker image")
 	// only the final image should be tagged

@@ -8,8 +8,9 @@ BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 TOOL_NAME=vpptool
 
 CONTEXT = "https://github.com/filvarga/vpptool.git\#$(BRANCH):docker/vpptool"
+GIT_URL = "https://github.com/FDio/vpp.git"
 
-LDFLAGS=-ldflags "-X main.context=$(CONTEXT)" 
+LDFLAGS=-ldflags "-X main.context=$(CONTEXT) -X main.git_url=$(GIT_URL)" 
 
 all: install
 
