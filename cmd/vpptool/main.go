@@ -6,7 +6,6 @@
  * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,7 +59,6 @@ type tool struct {
 	get_commit   bool
 	commit       string
 	quiet        bool
-	git_url      string
 	git_mail     string
 	git_name     string
 	idu          int
@@ -150,9 +148,9 @@ func (t tool) build_setup_image() bool {
 	return run(t.quiet, "docker", "build",
 		"--build-arg", fmt.Sprintf("GIT_MAIL:%s", t.git_mail),
 		"--build-arg", fmt.Sprintf("GIT_NAME:%s", t.git_name),
-		"--build-arg", fmt.Sprintf("GIT_URL:%s", t.git_url),
-		"--build-arg", fmt.Sprintf("IDU:%s", t.idu),
-		"--build-arg", fmt.Sprintf("IDG:%s", t.idg),
+		"--build-arg", fmt.Sprintf("GIT_URL:%s", git_url),
+		"--build-arg", fmt.Sprintf("IDU:%d", t.idu),
+		"--build-arg", fmt.Sprintf("IDG:%d", t.idg),
 		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
 		t.context)
 }
@@ -217,9 +215,14 @@ func notifySend(persistent bool, message string) {
 	}
 }
 
+func paplay() {
+	run(true, "paplay", "/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga")
+}
+
 func exitFailure(message string) {
 	notifySend(true, message)
 	logError(message)
+	paplay()
 	os.Exit(1)
 }
 
@@ -326,6 +329,7 @@ func main() {
 			exitFailure("error building")
 		} else {
 			notifySend(true, "build stage two done")
+			paplay()
 		}
 	}
 	os.Exit(0)

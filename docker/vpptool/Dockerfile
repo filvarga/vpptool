@@ -20,16 +20,16 @@ rm -rf /var/lib/apt/lists/*
 
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-ARG HOME=/work
-ENV VPP="${HOME}/vpp"
+ENV USER_HOME=/work
+ENV VPP="${USER_HOME}/vpp"
 
 ARG IDU=1000
 ARG IDG=1000
 
 RUN groupadd --gid $IDG user && useradd --uid $IDU --gid $IDG \
---home-dir $HOME --create-home --groups sudo user
+--home-dir $USER_HOME --create-home --groups sudo user
 
-WORKDIR $HOME
+WORKDIR $USER_HOME
 
 RUN mkdir -p /run/vpp && mkdir -p /var/log/vpp
 
@@ -44,12 +44,12 @@ RUN make install-dep
 ENV VPP_BIN="${VPP}/build-root/install-vpp_debug-native/vpp/bin"
 ENV STARTUP_CONF=/etc/startup.conf
 
-COPY ./files/bash_aliases $HOME/.bash_aliases
+COPY ./files/bash_aliases $USER_HOME/.bash_aliases
 
 ADD ./files/bin /usr/local/bin/
 ADD ./files/etc /etc
 
-ENV PATH="${PATH}:${HOME}/.local/bin"
+ENV PATH="${PATH}:${USER_HOME}/.local/bin"
 
 RUN chown -R $IDU:$IDG $VPP
 
