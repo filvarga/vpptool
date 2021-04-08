@@ -1,0 +1,8 @@
+{
+    "workbench.startupEditor": "newUntitledFile",
+    "workbench.colorTheme": "Solarized Light",
+    "terminal.integrated.sendKeybindingsToShell": true,
+    "editor.minimap.enabled": false,
+    "editor.renderIndentGuides": false,
+    "editor.tabSize": 2
+}
