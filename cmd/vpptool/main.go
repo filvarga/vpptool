@@ -151,6 +151,7 @@ func (t tool) build_setup_image() bool {
 		"--build-arg", fmt.Sprintf("GIT_URL:%s", git_url),
 		"--build-arg", fmt.Sprintf("IDU:%d", t.idu),
 		"--build-arg", fmt.Sprintf("IDG:%d", t.idg),
+		"--target", "vpptool",
 		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
 		t.context)
 }
