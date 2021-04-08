@@ -16,6 +16,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"flag"
 	"fmt"
 	"io"
@@ -31,6 +32,7 @@ const (
 	vpp_image     = "vpptool-images"
 	setup_tag     = "setup"
 	build_tag     = "master"
+	code_pswd     = "toor"
 	git_mail      = "john.doe@example.com"
 	git_name      = "John Doe"
 	idu           = 1000
@@ -38,8 +40,10 @@ const (
 )
 
 var (
-	context = ""
-	git_url = ""
+	context    = ""
+	git_url    = ""
+	cs_version = ""
+	go_version = ""
 )
 
 type image struct {
@@ -63,6 +67,10 @@ type tool struct {
 	git_name     string
 	idu          int
 	idg          int
+	cs_version   string
+	go_version   string
+	user_pswd    string
+	code_pswd    string
 }
 
 func log(w io.Writer, format string, args ...interface{}) (i int, err error) {
@@ -144,19 +152,32 @@ func (t tool) check_image(img image) bool {
 		fmt.Sprintf("%s:%s", img.vpp_image, img.vpp_tag))
 }
 
-func (t tool) build_setup_image() bool {
+func (t tool) build_base_image() bool {
 	return run(t.quiet, "docker", "build",
+		"--build-arg", fmt.Sprintf("USER_PSWD:%s", t.user_pswd),
 		"--build-arg", fmt.Sprintf("GIT_MAIL:%s", t.git_mail),
 		"--build-arg", fmt.Sprintf("GIT_NAME:%s", t.git_name),
 		"--build-arg", fmt.Sprintf("GIT_URL:%s", git_url),
 		"--build-arg", fmt.Sprintf("IDU:%d", t.idu),
 		"--build-arg", fmt.Sprintf("IDG:%d", t.idg),
-		"--target", "vpptool",
+		"--target", "base",
 		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
 		t.context)
 }
 
-func (t tool) build_cache_image(name string, script string, src image, dst image) bool {
+func (t tool) build_tool_image() bool {
+	hash := sha256.Sum256([]byte(t.code_pswd))
+	// hash=$(echo -n $plain | sha256sum | cut -c -64 -z)
+	return run(t.quiet, "docker", "build",
+		"--build-arg", fmt.Sprintf("CS_VERSION:%s", cs_version),
+		"--build-arg", fmt.Sprintf("GO_VERSION:%s", go_version),
+		"--build-arg", fmt.Sprintf("CODE_PSWD:%x", hash[:]),
+		"--target", "tool",
+		"-t", fmt.Sprintf("%s:%s", t.setup.vpp_image, t.setup.vpp_tag),
+		t.context)
+}
+
+func (t tool) cache_base_image(name string, script string, src image, dst image) bool {
 	var success bool
 
 	del_container(name)
@@ -177,7 +198,7 @@ func (t tool) build_cache_image(name string, script string, src image, dst image
 	return success
 }
 
-func (t tool) deploy_vpp(name string) bool {
+func (t tool) deploy_base(name string) bool {
 	var start_vpp int8
 	if t.start_vpp {
 		start_vpp = 1
@@ -202,7 +223,6 @@ func (t tool) deploy_vpp(name string) bool {
 func print_usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s: <build|<deploy [vpp-run]>>\n",
 		os.Args[0])
-	fmt.Fprintf(os.Stderr, "build & deploy\n")
 	flag.PrintDefaults()
 }
 
@@ -227,10 +247,68 @@ func exitFailure(message string) {
 	os.Exit(1)
 }
 
-func main() {
+func (t tool) build_base(setup bool, cache bool) {
 
 	var success bool
 	var src, dst image
+
+	src = t.build
+	dst = t.build
+
+	// if setup also rebuild cache
+	if !t.check_image(t.setup) || setup {
+		logInfo("building setup image...")
+
+		success = t.build_base_image()
+		if !success {
+			exitFailure("error building setup image")
+		}
+		src = t.setup
+	}
+
+	if len(t.commit) <= 0 && t.get_commit {
+		t.commit = get_commit_id()
+		logInfo("using commit-id: %s", t.commit)
+	}
+
+	if !t.check_image(t.build) || cache {
+		logInfo("rebuilding cache...")
+		src = t.setup
+	}
+
+	success = t.cache_base_image(tmp_container,
+		"/usr/local/bin/stage1", src, dst)
+	if !success {
+		exitFailure("error cache stage one")
+	} else {
+		notifySend(false, "cache stage one")
+	}
+
+	success = t.cache_base_image(tmp_container,
+		"/usr/local/bin/stage2", dst, dst)
+	if !success {
+		exitFailure("error cache stage two")
+	} else {
+		notifySend(true, "cache stage two")
+	}
+}
+
+func (t tool) build_tool() {
+
+}
+
+func (t tool) deploy_tool(name string) bool {
+
+	return true
+}
+
+// TODO: populate arguments in different calls, flag populate or so
+// based on the process and the requirements like base / tool store
+// those arguments in two separate data structures
+
+func main() {
+
+	success := true
 
 	t := tool{
 		setup: image{
@@ -241,9 +319,10 @@ func main() {
 
 	flag.BoolVar(&t.quiet, "quiet", false, "run quietly")
 
-	// for updating cache / setup images
 	setup := flag.Bool("setup", false, "rebuild setup image using context url")
 	cache := flag.Bool("cache", false, "rebuild cache image")
+
+	name := flag.String("name", vpp_name, "container name")
 
 	// required for setup phase
 	flag.StringVar(&t.commit, "commit-id", "", "commit id")
@@ -256,11 +335,15 @@ func main() {
 
 	flag.StringVar(&t.git_mail, "git-user-mail", git_mail, "git user mail")
 	flag.StringVar(&t.git_name, "git-user-name", git_name, "git user name")
-	flag.IntVar(&t.idu, "uid", idu, "user uid")
-	flag.IntVar(&t.idg, "gid", idg, "user gid")
 
+	flag.IntVar(&t.idu, "uid", idu, "user id")
+	flag.IntVar(&t.idg, "gid", idg, "user id")
+
+	flag.StringVar(&t.code_pswd, "code-pswd", code_pswd, "code-server password")
+	flag.StringVar(&t.user_pswd, "user-pswd", "", "user password")
+
+	// TODO: consider only the final image being tagged
 	flag.StringVar(&t.build.vpp_image, "image", vpp_image, "build docker image")
-	// only the final image should be tagged
 	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
 	// mounting ./vpp/src does not work (cmake issues preventing building)
@@ -277,63 +360,29 @@ func main() {
 	default:
 		print_usage()
 	case "deploy":
-		if flag.NArg() < 2 {
-			success = t.deploy_vpp(vpp_name)
-		} else {
-			success = t.deploy_vpp(flag.Arg(1))
-		}
-		if !success {
-			os.Exit(1)
+		switch flag.Arg(1) {
+		default:
+			print_usage()
+		case "vpp":
+			success = t.deploy_base(*name)
+		case "env":
+			success = t.deploy_tool(*name)
 		}
 	case "build":
-		src = t.build
-		dst = t.build
-
-		// if setup also rebuild cache
-		if !t.check_image(t.setup) || *setup {
-			logInfo("building setup image...")
-			success = t.build_setup_image()
-			if !success {
-				exitFailure("error building image")
-			}
-			src = t.setup
-		}
-
-		if len(t.commit) <= 0 && t.get_commit {
-			t.commit = get_commit_id()
-			logInfo("using commit-id: %s", t.commit)
-		}
-
-		if !t.check_image(t.build) || *cache {
-			logInfo("building cache image...")
-			src = t.setup
-		}
-
-		// stage1)
-		//	a) recreate build image from setup image
-		//		- clean image without dependencies
-		//	b) recreate build image from build image
-		//		- updates build image
-		success = t.build_cache_image(tmp_container,
-			"/usr/local/bin/stage1", src, dst)
-		if !success {
-			exitFailure("error caching dependencies")
-		} else {
-			notifySend(false, "build stage one done")
-		}
-
-		// stage2)
-		//	builds vpp
-		success = t.build_cache_image(tmp_container,
-			"/usr/local/bin/stage2", dst, dst)
-		if !success {
-			exitFailure("error building")
-		} else {
-			notifySend(true, "build stage two done")
-			paplay()
+		switch flag.Arg(1) {
+		default:
+			print_usage()
+		case "vpp":
+			t.build_base(*setup, *cache)
+		case "env":
+			t.build_tool()
 		}
 	}
-	os.Exit(0)
+	if !success {
+		os.Exit(1)
+	} else {
+		os.Exit(0)
+	}
 }
 
 /* vim: set ts=2: */

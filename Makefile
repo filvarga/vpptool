@@ -9,8 +9,10 @@ TOOL_NAME=vpptool
 
 CONTEXT = "https://github.com/filvarga/vpptool.git\#$(BRANCH):docker"
 GIT_URL = "https://github.com/FDio/vpp.git"
+GO_VERSION=1.16.3
+CS_VERSION=3.9.2
 
-LDFLAGS=-ldflags "-X main.context=$(CONTEXT) -X main.git_url=$(GIT_URL)" 
+LDFLAGS=-ldflags "-X main.context=$(CONTEXT) -X main.git_url=$(GIT_URL) -X main.cs_version=$(CS_VERSION) -X main.go_version=$(GO_VERSION)" 
 
 all: install
 

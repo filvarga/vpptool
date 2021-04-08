@@ -1,6 +1,5 @@
-# vpptool
-FROM ubuntu:20.04 as vpptool
-
+#
+FROM ubuntu:20.04 as base
 LABEL maintainer="filipvarga89@gmail.com"
 
 ENV TZ=Europe/Bratislava
@@ -68,9 +67,8 @@ git config --global user.name  $GIT_NAME
 
 RUN pip3 install --user ipaddress scapy 
 
-# devtool
-FROM vpptool-images:setup as devtool
-
+#
+FROM vpptool-images:setup as tool
 LABEL maintainer="filipvarga89@gmail.com"
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -79,15 +77,15 @@ WORKDIR /tmp
 
 USER root:root
 
-# install code-server
-ARG CS_VERSION=3.9.2
+# install code-server 3.9.2
+ARG CS_VERSION=
 
 RUN wget -O code-server_${CS_VERSION}_amd64.deb https://github.com/cdr/code-server/releases/download/v${CS_VERSION}/code-server_${CS_VERSION}_amd64.deb && \
 dpkg -i code-server_${CS_VERSION}_amd64.deb && \
 rm code-server_${CS_VERSION}_amd64.deb
 
-# install golang
-ARG GO_VERSION=1.16.3
+# install golang 1.16.3
+ARG GO_VERSION=
 
 RUN wget -O go${GO_VERSION}.linux-amd64.tar.gz \
 https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
@@ -111,9 +109,8 @@ COPY ./files/tmux.conf .tmux.conf
 
 EXPOSE 9090/tcp
 
-# =$(echo -n $INPUT | sha256sum | cut -c -64 -z)
-ARG CODE_PASS=ce5ca673d13b36118d54a7cf13aeb0ca012383bf771e713421b4d1fd841f539a
-ENV HASHED_PASSWORD=CODE_PASS
+ARG CODE_PSWD=
+ENV HASHED_PASSWORD=$CODE_PSWD
 
 ENTRYPOINT ["code-server", "--bind-addr", "0.0.0.0:9090"]
 CMD ["--disable-update-check"]
