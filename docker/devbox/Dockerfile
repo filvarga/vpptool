@@ -4,13 +4,9 @@ LABEL maintainer="filipvarga89@gmail.com"
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-USER root:root
-
 WORKDIR /tmp
 
-RUN apt-get update && \
-apt-get install -y --no-install-recommends wget zsh && \
-rm -rf /var/lib/apt/lists/*
+USER root:root
 
 # install code-server
 ARG CS_VERSION=3.9.2
@@ -29,35 +25,24 @@ rm go${GO_VERSION}.linux-amd64.tar.gz
 
 ENV PATH="${PATH}:/usr/local/go/bin"
 
+# install tools
+RUN apt-get update && \
+apt-get install -y --no-install-recommends tmux && \
+rm -rf /var/lib/apt/lists/*
+
 USER user:user
 
 WORKDIR $USER_HOME
 
 # copy user configs
-COPY ./files/tmux.conf $USER_HOME/.tmux.conf
-COPY ./files/vimrc $USER_HOME/.vimrc
-
-RUN git clone https://github.com/VundleVim/Vundle.vim.git \
-$USER_HOME/.vim/bundle/Vundle.vim
-
-RUN mkdir -p $USER_HOME/.local/share/code-server/User/
-COPY ./files/settings.json $USER_HOME/.local/share/code-server/User/settings.json
-
-# install ohmyzsh
-RUN sh -c "$(wget -O- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-
-# TODO: fix the password for sudo
-#ARG SUDO_PASS=
-#RUN [[ ! -z "$SUDO_PASS" ]] && (echo 'user:user' | chpasswd) || \
-#echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-
-# TODO: run as user
-#RUN vim +PluginInstall +qall
+COPY ./files/settings.json .local/share/code-server/User/settings.json
+COPY ./files/tmux.conf .tmux.conf
 
 EXPOSE 9090/tcp
 
-ARG CODE_PASS=toor
-# TODO: convert to sha25 or what it wants, as an environment variable
-ENV PASSWORD=${CODE_PASS}
+# =$(echo -n $INPUT | sha256sum | cut -c -64 -z)
+ARG CODE_PASS=ce5ca673d13b36118d54a7cf13aeb0ca012383bf771e713421b4d1fd841f539a
+ENV HASHED_PASSWORD=CODE_PASS
+
 ENTRYPOINT ["code-server", "--bind-addr", "0.0.0.0:9090"]
 CMD ["--disable-update-check"]

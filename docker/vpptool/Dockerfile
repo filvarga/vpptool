@@ -9,16 +9,15 @@ ENV LANG=C.UTF-8
 ARG DEBIAN_FRONTEND=noninteractive
 ARG UNATTENDED=y
 
-# install-ext-deps requires libssl-dev
-# scpay requires additional stuff to work (netbase, ebtables)
-# python3 requirement for make
+# libssl-dev required by install-ext-deps
+# netbase & ebtables required by scapy
+# vpp make build requires python3
 RUN apt-get update && \
 apt-get install -y --no-install-recommends \
-ca-certificates build-essential openssh-client git gdb sudo less vim \
+ca-certificates build-essential openssh-client \
+git gdb sudo less vim wget \
 python3 python3-pip libssl-dev netbase ebtables && \
 rm -rf /var/lib/apt/lists/*
-
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 ENV USER_HOME=/work
 ENV VPP="${USER_HOME}/vpp"
@@ -62,3 +61,8 @@ RUN git config --global user.email $GIT_MAIL && \
 git config --global user.name  $GIT_NAME
 
 RUN pip3 install --user ipaddress scapy 
+
+ARG USER_PSWD=
+
+RUN [[ ! -z "$USER_PSWD" ]] && (echo 'user:$USER_PSWD' | chpasswd) || \
+(echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers)
