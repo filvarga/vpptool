@@ -8,8 +8,8 @@ git pull
 git checkout $CID -b workspace
 # if one of these fails recache is required
 # this can be automatic ofc.
-UNATTENDED=y
-DEBIAN_FRONTEND=noninteractive
+export UNATTENDED=y
+export DEBIAN_FRONTEND=noninteractive
 make install-dep
 make install-ext-deps
 sudo rm -rf /var/lib/apt/lists
