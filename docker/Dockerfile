@@ -38,8 +38,6 @@ RUN git clone $GIT_URL
 
 WORKDIR $VPP
 
-RUN make install-dep
-
 ENV VPP_BIN="${VPP}/build-root/install-vpp_debug-native/vpp/bin"
 ENV STARTUP_CONF=/etc/startup.conf
 
