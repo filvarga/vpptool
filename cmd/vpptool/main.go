@@ -221,7 +221,7 @@ func (t tool) deploy_base(name string) bool {
 }
 
 func print_usage() {
-	fmt.Fprintf(os.Stderr, "Usage of %s: <build|<deploy [vpp-run]>>\n",
+	fmt.Fprintf(os.Stderr, "Usage of %s: <build|deploy> <vpp|env>\n",
 		os.Args[0])
 	flag.PrintDefaults()
 }
