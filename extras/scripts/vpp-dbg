@@ -19,11 +19,11 @@ if [ $? -ne 0 ]; then
 fi
 
 if [[ -z "${args}" ]]; then
-  docker exec -it $name gdb -p $pid -cd=/opt/vpp
+  docker exec -it $name gdb -p $pid -cd=/work/vpp
 else
   for point in "${args}"; do
     printf "br ${point}\n" > /tmp/bpoints
   done
   docker cp /tmp/bpoints $name:/tmp/bpoints
-  docker exec -it $name gdb -p $pid -cd=/opt/vpp -x /tmp/bpoints
+  docker exec -it $name gdb -p $pid -cd=/work/vpp -x /tmp/bpoints
 fi

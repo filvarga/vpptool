@@ -21,11 +21,11 @@ if [[ -z "$(git status --porcelain)" ]]; then
     git co $branch
     git rebase master
     if [[ $? == 0 ]]; then
-        vpptool -tag master build
-        vpptool -tag master -plugin $PLUGIN deploy
+        vpptool build vpp
+        vpptool -plugin $PLUGIN deploy vpp
         docker exec $container bash -c "git add src/*"
         docker exec $container bash -c "git commit -a -m 'rebased'"
-        docker exec $container /scripts/build
+        docker exec $container /usr/local/bin/stage2
         exit 0
       else
         git rebase --abort
