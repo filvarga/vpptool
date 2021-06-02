@@ -2,6 +2,7 @@
 
 import sys
 from os import write
+from os import getcwd
 from sys import argv
 from os import system
 from uuid import uuid4
@@ -25,7 +26,7 @@ def task_add_fn(name):
     if exists(dst):
         raise Exception('task %s exist' % name)
 
-    Git(dst).clone('https://github.com/filvarga/vpptest.git')
+    Git(getcwd()).clone('https://github.com/filvarga/vpptest.git', dst)
 
     config = join(dst, '.config')
     tags = join(dst, '.tags')
