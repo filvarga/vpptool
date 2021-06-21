@@ -7,10 +7,6 @@ if [[ -z "$VPP" ]]; then
   VPP=~/git/vpp
 fi
 
-if [[ -z "$PLUGIN" ]]; then
-  PLUGIN=$VPP/src/plugins/nat
-fi
-
 cd $VPP
 
 if [[ -z "$(git status --porcelain)" ]]; then 
@@ -22,7 +18,7 @@ if [[ -z "$(git status --porcelain)" ]]; then
     git rebase master
     if [[ $? == 0 ]]; then
         vpptool build vpp
-        vpptool -plugin $PLUGIN deploy vpp
+        vpptool -vpp $VPP deploy vpp
         docker exec $container bash -c "git add src/*"
         docker exec $container bash -c "git commit -a -m 'rebased'"
         docker exec $container /usr/local/bin/stage2

@@ -22,7 +22,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"syscall"
 )
 
@@ -58,7 +57,7 @@ type tool struct {
 	startup_file string
 	config_file  string
 	context      string
-	plugin       string
+	vpp          string
 	start_vpp    bool
 	get_commit   bool
 	commit       string
@@ -206,11 +205,12 @@ func (t tool) deploy_base(name string) bool {
 
 	del_container(name)
 
-	if len(t.plugin) > 0 {
+	if len(t.vpp) > 0 {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
 			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
-			"-d", "--network", "host", "--name", name, "-v",
-			fmt.Sprintf("%s:/work/vpp/src/plugins/%s", t.plugin, filepath.Base(t.plugin)),
+			"-d", "--network", "host", "--name", name,
+			"-v", fmt.Sprintf("%s/src/plugins:/work/vpp/src/plugins", t.vpp),
+			"-v", fmt.Sprintf("%s/test:/work/vpp/test", t.vpp),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
@@ -347,8 +347,7 @@ func main() {
 	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
 	// mounting ./vpp/src does not work (cmake issues preventing building)
-	// mounts in container ./vpp/src/plugins/<plugin>
-	flag.StringVar(&t.plugin, "plugin", "", "custom plugin folder")
+	flag.StringVar(&t.vpp, "vpp", "", "host vpp folder")
 
 	// will be unused when we switch to full workstation scenario
 	flag.BoolVar(&t.start_vpp, "running", false,
