@@ -57,7 +57,7 @@ type tool struct {
 	startup_file string
 	config_file  string
 	context      string
-	vpp          string
+	mount        string
 	start_vpp    bool
 	get_commit   bool
 	commit       string
@@ -205,12 +205,19 @@ func (t tool) deploy_base(name string) bool {
 
 	del_container(name)
 
-	if len(t.vpp) > 0 {
+	if len(t.mount) > 0 {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
+			"-v", fmt.Sprintf("%s/src/vlibmemory:/work/vpp/src/vlibmemory", t.mount),
+			"-v", fmt.Sprintf("%s/src/vppinfra:/work/vpp/src/vppinfra", t.mount),
+			"-v", fmt.Sprintf("%s/src/plugins:/work/vpp/src/plugins", t.mount),
+			"-v", fmt.Sprintf("%s/src/vlibapi:/work/vpp/src/vlibapi", t.mount),
+			"-v", fmt.Sprintf("%s/src/vlib:/work/vpp/src/vlib", t.mount),
+			"-v", fmt.Sprintf("%s/src/vnet:/work/vpp/src/vnet", t.mount),
+			"-v", fmt.Sprintf("%s/src/vcl:/work/vpp/src/vcl", t.mount),
+			"-v", fmt.Sprintf("%s/src/vpp:/work/vpp/src/vpp", t.mount),
+			"-v", fmt.Sprintf("%s/test:/work/vpp/test", t.mount),
 			"-e", fmt.Sprintf("START_VPP=%d", start_vpp),
 			"-d", "--network", "host", "--name", name,
-			"-v", fmt.Sprintf("%s/src/plugins:/work/vpp/src/plugins", t.vpp),
-			"-v", fmt.Sprintf("%s/test:/work/vpp/test", t.vpp),
 			fmt.Sprintf("%s:%s", t.build.vpp_image, t.build.vpp_tag))
 	} else {
 		return run(t.quiet, "docker", "run", "-it", "--cap-add=all", "--privileged",
@@ -347,7 +354,7 @@ func main() {
 	flag.StringVar(&t.build.vpp_tag, "tag", build_tag, "build docker tag")
 
 	// mounting ./vpp/src does not work (cmake issues preventing building)
-	flag.StringVar(&t.vpp, "vpp", "", "host vpp folder")
+	flag.StringVar(&t.mount, "mount", "", "host vpp folder")
 
 	// will be unused when we switch to full workstation scenario
 	flag.BoolVar(&t.start_vpp, "running", false,

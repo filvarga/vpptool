@@ -18,7 +18,7 @@ if [[ -z "$(git status --porcelain)" ]]; then
     git rebase master
     if [[ $? == 0 ]]; then
         vpptool build vpp
-        vpptool -vpp $VPP deploy vpp
+        vpptool -mount $VPP deploy vpp
         docker exec $container bash -c "git add src/*"
         docker exec $container bash -c "git commit -a -m 'rebased'"
         docker exec $container /usr/local/bin/stage2
