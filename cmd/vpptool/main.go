@@ -183,7 +183,7 @@ func (t tool) cache_base_image(name string, script string, src image, dst image)
 	defer del_container(name)
 
 	success = run(t.quiet, "docker", "run", "--name", name,
-		"-e", fmt.Sprintf("CID=%s", t.commit),
+		"-e", fmt.Sprintf("CID=%s", t.commit), "--network", "host",
 		fmt.Sprintf("%s:%s", src.vpp_image, src.vpp_tag), script)
 
 	if !success {
